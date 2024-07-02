@@ -315,7 +315,9 @@ class FullImageDatamanager(DataManager, Generic[TDataset]):
         Pretends to be the dataloader for evaluation, it returns a list of (camera, data) tuples
         """
         image_indices = [i for i in range(len(self.eval_dataset))]
-        data = deepcopy(self.cached_eval)
+        data = []
+        for i in image_indices:
+            data.append(self.eval_dataset.get_data(i, image_type=self.config.cache_images_type))
         _cameras = deepcopy(self.eval_dataset.cameras).to(self.device)
         cameras = []
         for i in image_indices:
@@ -344,11 +346,11 @@ class FullImageDatamanager(DataManager, Generic[TDataset]):
         if len(self.train_unseen_cameras) == 0:
             self.train_unseen_cameras = self.sample_train_cameras()
 
-        data = self.cached_train[image_idx]
+        data = self.train_dataset.get_data(image_idx, image_type=self.config.cache_images_type)
         data["image"] = data["image"].to(self.device)
 
-        assert len(self.train_cameras.shape) == 1, "Assumes single batch dimension"
-        camera = self.train_cameras[image_idx : image_idx + 1].to(self.device)
+        assert len(self.train_dataset.cameras.shape) == 1, "Assumes single batch dimension"
+        camera = self.train_dataset.cameras[image_idx : image_idx + 1].to(self.device)
         if camera.metadata is None:
             camera.metadata = {}
         camera.metadata["cam_idx"] = image_idx
@@ -370,7 +372,7 @@ class FullImageDatamanager(DataManager, Generic[TDataset]):
         # Make sure to re-populate the unseen cameras list if we have exhausted it
         if len(self.eval_unseen_cameras) == 0:
             self.eval_unseen_cameras = [i for i in range(len(self.eval_dataset))]
-        data = deepcopy(self.cached_eval[image_idx])
+        data = self.eval_dataset.get_data(image_idx, image_type=self.config.cache_images_type)
         data["image"] = data["image"].to(self.device)
         assert len(self.eval_dataset.cameras.shape) == 1, "Assumes single batch dimension"
         camera = self.eval_dataset.cameras[image_idx : image_idx + 1].to(self.device)
